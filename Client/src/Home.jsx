@@ -20,7 +20,7 @@ const Home = () => {
   const handleJoin = () => {
     if (room && name) {
       socket.current.emit("joinRoom", { room, name });
-      navigate(`/${room}/video`, { state: { room } });
+      navigate(`/${room}/video`, { state: { room, name } });
     } else {
       alert("Please enter both name and room");
     }

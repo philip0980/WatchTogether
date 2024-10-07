@@ -15,6 +15,7 @@ const io = new Server(server, {
 });
 
 const rooms = {};
+const peers = {};
 
 io.on("connection", (socket) => {
   console.log(`A user connected: ${socket.id}`);
@@ -23,11 +24,21 @@ io.on("connection", (socket) => {
     socket.join(room);
     console.log(`User ${name} joined room ${room}`);
 
+    // Sync existing video state if it exists
     if (rooms[room]) {
       socket.emit("syncVideo", rooms[room]); // Sync existing video state
     }
 
-    socket.to(room).emit("message", `${name} has joined the room`);
+    socket
+      .to(room)
+      .emit("message", { message: `${name} has joined the room`, name });
+  });
+
+  socket.on("sendId", (data) => {
+    const id = data.id;
+    peers[socket.id] = id;
+    console.log("Peer id :", id);
+    socket.broadcast.emit("newPeer", id);
   });
 
   socket.on("playVideo", (data) => {
@@ -49,6 +60,11 @@ io.on("connection", (socket) => {
     console.log("Seek Video", data);
     rooms[room] = { ...rooms[room], time };
     socket.to(room).emit("seekVideo", { time }); // Emit only time
+  });
+
+  socket.on("videoSwitch", (data) => {
+    const { videoId, room } = data;
+    socket.to(room).emit("videoSwitched", { videoId, room });
   });
 
   socket.on("disconnect", () => {

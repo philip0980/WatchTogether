@@ -1,24 +1,70 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import YouTube from "react-youtube";
 import { io } from "socket.io-client";
 import { useLocation } from "react-router-dom";
+import axios from "axios";
+import { Peer } from "peerjs";
 
 const Video = () => {
+  const [query, setQuery] = useState("");
+  const [videoes, setVideoes] = useState([]);
+  const [mainVideoId, setMainVideoId] = useState("NDjeeJwI08Q");
+  const [peerId, setPeerId] = useState("");
+  const [oppPeerId, setOppPeerId] = useState("");
+  const [oppName, setOppName] = useState("");
+  const [namee, setNamee] = useState("");
+  const [localStream, setLocalStream] = useState("");
+  const [remoteStream, setRemoteStream] = useState("");
   const player = useRef(null);
-  const socket = useRef(null);
+  const socketRef = useRef(null);
+  const peerRef = useRef(null);
+  const localVideoRef = useRef(null);
+  const remoteVideoRef = useRef(null);
   const location = useLocation();
-  const { room } = location.state;
+  const { room, name } = location.state;
   const lastEmittedTime = useRef({ play: null, pause: null, seek: null });
 
-  useEffect(() => {
-    socket.current = io("http://localhost:8000");
+  const fetchVideoes = async (searchQuery) => {
+    const API = `https://www.googleapis.com/youtube/v3/search?key=AIzaSyBpsWCX1nX69gzstFtRZfbFeYfHY4H1eaY&part=snippet&type=video&q=${searchQuery}`;
+    try {
+      const response = await axios.get(API);
+      if (response.data.items.length > 0) {
+        setMainVideoId(response.data.items[0].id.videoId);
+      }
+      console.log(response.data.items);
+      setVideoes(response.data.items);
+    } catch (error) {
+      console.log("Error fetching videoes", error);
+    }
+  };
 
-    socket.current.on("connect", () => {
-      console.log(`Connected to server with socket id: ${socket.current.id}`);
-      socket.current.emit("joinRoom", { room, name: "User" }); // Change "User" to the actual user name
+  useEffect(() => {
+    fetchVideoes(query);
+  }, []);
+
+  useEffect(() => {
+    socketRef.current = io("http://localhost:8000");
+
+    socketRef.current.on("connect", () => {
+      console.log(
+        `Connected to server with socketRef id: ${socketRef.current.id}`
+      );
+      socketRef.current.emit("joinRoom", { room, name });
+      setNamee(name);
     });
 
-    socket.current.on("syncVideo", (data) => {
+    socketRef.current.on("newPeer", (id) => {
+      setOppPeerId(id);
+      console.log("New peer connected", id);
+    });
+
+    socketRef.current.on("message", (data) => {
+      const { message, name } = data;
+      console.log(message);
+      setOppName(name);
+    });
+
+    socketRef.current.on("syncVideo", (data) => {
       if (player.current) {
         const currentTime = player.current.getCurrentTime();
         if (Math.abs(currentTime - data.time) > 0.5) {
@@ -32,34 +78,34 @@ const Video = () => {
       }
     });
 
-    socket.current.on("playVideo", (data) => {
+    socketRef.current.on("playVideo", (data) => {
       if (player.current && player.current.getPlayerState() !== 1) {
         player.current.seekTo(data.time);
         player.current.playVideo();
       }
     });
 
-    socket.current.on("pauseVideo", (data) => {
+    socketRef.current.on("pauseVideo", (data) => {
       if (player.current && player.current.getPlayerState() !== 2) {
         player.current.seekTo(data.time);
         player.current.pauseVideo();
       }
     });
 
-    socket.current.on("seekVideo", (data) => {
+    socketRef.current.on("seekVideo", (data) => {
       if (player.current) {
         player.current.seekTo(data.time);
       }
     });
 
     return () => {
-      socket.current.disconnect();
+      socketRef.current.disconnect();
     };
-  }, [room]);
+  }, []);
 
   const opts = {
     playerVars: {
-      autoplay: 1,
+      autoplay: 0,
     },
   };
 
@@ -71,7 +117,7 @@ const Video = () => {
       !lastEmittedTime.current.play ||
       now - lastEmittedTime.current.play > 1000
     ) {
-      socket.current.emit("playVideo", { time: currentTime, room });
+      socketRef.current.emit("playVideo", { time: currentTime, room });
       lastEmittedTime.current.play = now;
     }
   };
@@ -84,7 +130,7 @@ const Video = () => {
       !lastEmittedTime.current.pause ||
       now - lastEmittedTime.current.pause > 1000
     ) {
-      socket.current.emit("pauseVideo", { time: currentTime, room });
+      socketRef.current.emit("pauseVideo", { time: currentTime, room });
       lastEmittedTime.current.pause = now;
     }
   };
@@ -106,24 +152,178 @@ const Video = () => {
         !lastEmittedTime.current.seek ||
         now - lastEmittedTime.current.seek > 1000
       ) {
-        socket.current.emit("seekVideo", { time: currentTime, room });
+        socketRef.current.emit("seekVideo", { time: currentTime, room });
         lastEmittedTime.current.seek = now;
       }
     }
   };
 
+  const handleSearch = () => {
+    if (!query) return;
+    fetchVideoes(query);
+  };
+
+  useEffect(() => {
+    if (player.current) {
+      player.current.loadVideoById(mainVideoId); // Load new video
+    }
+  }, [mainVideoId]);
+
+  const handleVideoSwitch = (videoId) => {
+    setMainVideoId(videoId);
+    socketRef.current.emit("videoSwitch", { room, videoId });
+  };
+
+  useEffect(() => {
+    const handleVideoSwitch = (data) => {
+      if (data.videoId && data.room === room) {
+        setMainVideoId(data.videoId);
+        if (player.current) {
+          player.current.loadVideoById(data.videoId);
+        }
+      }
+    };
+
+    socketRef.current.on("videoSwitched", handleVideoSwitch);
+
+    return () => {
+      socketRef.current.off("videoSwitched", handleVideoSwitch);
+    };
+  }, []);
+
+  // VideoCalling feature
+
+  useEffect(() => {
+    const peer = new Peer();
+    peerRef.current = peer;
+
+    peer.on("open", (id) => {
+      setPeerId(id);
+      const socket = socketRef.current;
+      socket.emit("sendId", { id });
+    });
+
+    peer.on("call", (call) => {
+      navigator.mediaDevices.getUserMedia({ video: true }).then((stream) => {
+        setLocalStream(stream);
+        call.answer(stream);
+
+        call.on("stream", (remoteStream) => {
+          setRemoteStream(remoteStream);
+        });
+      });
+    });
+  }, [localStream]);
+
+  const handleOpenVideo = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      setLocalStream(stream);
+      localVideoRef.current.srcObject = stream;
+
+      const peer = peerRef.current;
+      if (oppPeerId && localStream) {
+        const call = peer.call(oppPeerId, localStream);
+
+        call.on("stream", (remoteStream) => {
+          setRemoteStream(remoteStream);
+        });
+      } else {
+        console.log("Please input opponent peer id and localstream");
+      }
+    } catch (error) {
+      console.log("Error opening video", error);
+    }
+  };
+
+  useEffect(() => {
+    if (remoteStream && remoteVideoRef.current) {
+      remoteVideoRef.current.srcObject = remoteStream;
+    }
+  }, [remoteStream]);
+
   return (
     <div>
+      <div>
+        <input
+          type="text"
+          placeholder="Search for video"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        <button onClick={handleSearch}>Search</button>
+      </div>
       <YouTube
-        videoId="NDjeeJwI08Q"
+        videoId={mainVideoId || "NDjeeJwI08Q"}
         onPlay={onPlay}
         onPause={onPause}
         onStateChange={onStateChange}
         onReady={(event) => {
           player.current = event.target;
+          // player.current.loadVideoById(mainVideoId);
         }}
         opts={opts}
       />
+
+      <h2>Videoes</h2>
+      <div>
+        {videoes.map((video) => (
+          <div
+            key={video.id.videoId}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              cursor: "pointer",
+              margin: "20px",
+            }}
+            // onClick={() => setMainVideoId(video.id.videoId)}
+            onClick={() => handleVideoSwitch(video.id.videoId)}
+          >
+            <img
+              src={video.snippet.thumbnails.default.url}
+              alt={video.snippet.title}
+              width="120"
+              height="90"
+              style={{ marginRight: "10px" }}
+            />
+            <div>
+              <p style={{ fontWeight: "bold", margin: "0" }}>
+                {video.snippet.title}
+              </p>
+              <p style={{ color: "#555", margin: "0" }}>
+                {video.snippet.channelTitle}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="bar">
+        <button onClick={handleOpenVideo}>Video</button>
+      </div>
+      <div className="videoCall">
+        <video
+          ref={localVideoRef}
+          autoPlay
+          muted
+          style={{
+            height: "400px",
+            width: " 400px",
+            border: "1px solid black",
+          }}
+        />
+        <p>{namee}</p>
+        <video
+          ref={remoteVideoRef}
+          autoPlay
+          muted
+          style={{
+            height: "400px",
+            width: " 400px",
+            border: "1px solid black",
+          }}
+        />
+        <p>{oppName}</p>
+      </div>
     </div>
   );
 };
