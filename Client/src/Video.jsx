@@ -25,7 +25,8 @@ const Video = () => {
   const lastEmittedTime = useRef({ play: null, pause: null, seek: null });
 
   const fetchVideoes = async (searchQuery) => {
-    const API = `https://www.googleapis.com/youtube/v3/search?key=AIzaSyBpsWCX1nX69gzstFtRZfbFeYfHY4H1eaY&part=snippet&type=video&q=${searchQuery}`;
+    const key = "AIzaSyBpsWCX1nX69gzstFtRZfbFeYfHY4H1eaY";
+    const API = `https://www.googleapis.com/youtube/v3/search?key=${key}&part=snippet&type=video&q=${searchQuery}`;
     try {
       const response = await axios.get(API);
       if (response.data.items.length > 0) {
@@ -229,7 +230,7 @@ const Video = () => {
           setRemoteStream(remoteStream);
         });
       } else {
-        console.log("Please input opponent peer id and localstream");
+        console.log("Please in  t opponent peer id and localstream");
       }
     } catch (error) {
       console.log("Error opening video", error);

@@ -2,10 +2,13 @@ import express from "express";
 import cors from "cors";
 import http from "http";
 import { Server } from "socket.io";
+import dotenv from "dotenv";
 
 const app = express();
 const server = http.createServer(app);
 app.use(cors({ origin: "http://localhost:5173" }));
+
+dotenv.config();
 
 const io = new Server(server, {
   cors: {
@@ -17,12 +20,30 @@ const io = new Server(server, {
 const rooms = {};
 const peers = {};
 
+const ADMIN_PASSWORD = process.env.PASSWORD;
+
 io.on("connection", (socket) => {
   console.log(`A user connected: ${socket.id}`);
+
+  // handle admin login
+  socket.on("adminLogin", (data) => {
+    const password = data.password;
+
+    if (password === ADMIN_PASSWORD) {
+      socket.emit("loginResult", { success: true });
+    } else socket.emit("loginResult", { success: false });
+  });
 
   socket.on("joinRoom", ({ room, name }) => {
     socket.join(room);
     console.log(`User ${name} joined room ${room}`);
+
+    // add client to the room
+    if (!rooms[room]) {
+      rooms[room] = { clients: [], videoId: null };
+    }
+
+    rooms[room].clients.push({ socketId: socket.id, name });
 
     // Sync existing video state if it exists
     if (rooms[room]) {
@@ -64,11 +85,28 @@ io.on("connection", (socket) => {
 
   socket.on("videoSwitch", (data) => {
     const { videoId, room } = data;
+
+    rooms[room] = { ...rooms[room], videoId };
     socket.to(room).emit("videoSwitched", { videoId, room });
+  });
+
+  socket.on("getRoomInfo", () => {
+    socket.emit("roomInfo", rooms);
   });
 
   socket.on("disconnect", () => {
     console.log("User disconnected");
+
+    // Remove user from rooms and peers
+    for (let room in rooms) {
+      rooms[room].clients = rooms[room].clients.filter(
+        (client) => client.socketId !== socket.id
+      );
+      if (rooms[room].clients.length === 0) {
+        delete rooms[room]; // Clean up room if empty
+      }
+    }
+    delete peers[socket.id];
   });
 });
 
