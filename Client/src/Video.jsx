@@ -4,6 +4,7 @@ import { io } from "socket.io-client";
 import { useLocation } from "react-router-dom";
 import axios from "axios";
 import { Peer } from "peerjs";
+import "./Video.css";
 
 const Video = () => {
   const [query, setQuery] = useState("");
@@ -244,8 +245,18 @@ const Video = () => {
   }, [remoteStream]);
 
   return (
-    <div>
-      <div>
+    <div
+      className="container"
+      style={{
+        backgroundColor: "blue",
+        width: "100vw",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexDirection: "column",
+      }}
+    >
+      <div className="input_field">
         <input
           type="text"
           placeholder="Search for video"
@@ -254,20 +265,56 @@ const Video = () => {
         />
         <button onClick={handleSearch}>Search</button>
       </div>
-      <YouTube
-        videoId={mainVideoId || "NDjeeJwI08Q"}
-        onPlay={onPlay}
-        onPause={onPause}
-        onStateChange={onStateChange}
-        onReady={(event) => {
-          player.current = event.target;
-          // player.current.loadVideoById(mainVideoId);
-        }}
-        opts={opts}
-      />
+      <div className="lower_container">
+        <YouTube
+          videoId={mainVideoId || "NDjeeJwI08Q"}
+          onPlay={onPlay}
+          onPause={onPause}
+          onStateChange={onStateChange}
+          onReady={(event) => {
+            player.current = event.target;
+            // player.current.loadVideoById(mainVideoId);
+          }}
+          opts={opts}
+        />
+
+        <div className="videocalls">
+          <div className="bar">
+            <button onClick={handleOpenVideo}>Video Call</button>
+          </div>
+          <div className="videoCall">
+            <div className="he">
+              <video
+                ref={localVideoRef}
+                autoPlay
+                muted
+                style={{
+                  height: "100px",
+                  width: " 100px",
+                  border: "1px solid black",
+                }}
+              />
+              <p>{namee}</p>
+            </div>
+            <div className="he">
+              <video
+                ref={remoteVideoRef}
+                autoPlay
+                muted
+                style={{
+                  height: "100px",
+                  width: " 100px",
+                  border: "1px solid black",
+                }}
+              />
+              <p>{oppName}</p>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <h2>Videoes</h2>
-      <div>
+      <div className="hello">
         {videoes.map((video) => (
           <div
             key={video.id.videoId}
@@ -297,33 +344,6 @@ const Video = () => {
             </div>
           </div>
         ))}
-      </div>
-      <div className="bar">
-        <button onClick={handleOpenVideo}>Video</button>
-      </div>
-      <div className="videoCall">
-        <video
-          ref={localVideoRef}
-          autoPlay
-          muted
-          style={{
-            height: "400px",
-            width: " 400px",
-            border: "1px solid black",
-          }}
-        />
-        <p>{namee}</p>
-        <video
-          ref={remoteVideoRef}
-          autoPlay
-          muted
-          style={{
-            height: "400px",
-            width: " 400px",
-            border: "1px solid black",
-          }}
-        />
-        <p>{oppName}</p>
       </div>
     </div>
   );

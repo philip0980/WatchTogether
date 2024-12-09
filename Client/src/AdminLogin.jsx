@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { io } from "socket.io-client";
 import Dashboard from "./Dashboard";
+import "./AdminLogin.css";
 
 const AdminLogin = () => {
   const [password, setPassword] = useState("");
@@ -29,16 +30,18 @@ const AdminLogin = () => {
       {isAuthenticated ? (
         <Dashboard />
       ) : (
-        <div>
-          AdminLogin
-          <input
-            type="password"
-            value={password}
-            placeholder="Enter password"
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          <button onClick={handleLogin}>Login</button>
-          {error && <p style={{ color: "red" }}>{error}</p>}
+        <div className="up_container">
+          <div className="border_container">
+            <h1>AdminLogin</h1>
+            <input
+              type="password"
+              value={password}
+              placeholder="Enter password"
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <button onClick={handleLogin}>Login</button>
+            {error && <p style={{ color: "red" }}>{error}</p>}
+          </div>
         </div>
       )}
     </div>

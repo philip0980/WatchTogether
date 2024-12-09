@@ -1,0 +1,39 @@
+.up_container {
+  display: flex;
+  background-color: rgb(56, 65, 81);
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  width: 100vw;
+  color: white;
+}
+
+.border_container {
+  box-shadow: 2px 2px 5px grey, /* Grey shadow */ -2px -2px 5px white,
+    /* White shadow */ 4px 4px 10px rgb(61, 73, 87);
+  background-color: #3d4957;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 50vh;
+  width: 23vw;
+}
+
+.border_container h1 {
+  font-size: 40px;
+  text-align: center;
+}
+
+.border_container input {
+  width: 200px;
+  height: 25px;
+  padding-left: 10px;
+}
+
+.border_container button {
+  margin-top: 20px;
+  position: relative;
+  left: 70px;
+}
