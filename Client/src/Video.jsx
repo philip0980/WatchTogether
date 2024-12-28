@@ -26,7 +26,7 @@ const Video = () => {
   const lastEmittedTime = useRef({ play: null, pause: null, seek: null });
 
   const fetchVideoes = async (searchQuery) => {
-    const key = "AIzaSyBpsWCX1nX69gzstFtRZfbFeYfHY4H1eaY";
+    const key = "*";
     const API = `https://www.googleapis.com/youtube/v3/search?key=${key}&part=snippet&type=video&q=${searchQuery}`;
     try {
       const response = await axios.get(API);
