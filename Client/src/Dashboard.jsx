@@ -7,7 +7,7 @@ const Dashboard = () => {
   const [rooms, setRooms] = useState({});
 
   useEffect(() => {
-    const socket = io("http://localhost:8000");
+    const socket = io("https://watchtogether-jpek.onrender.com/");
 
     socket.emit("getRoomInfo");
 
