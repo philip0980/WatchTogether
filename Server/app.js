@@ -6,13 +6,13 @@ import dotenv from "dotenv";
 
 const app = express();
 const server = http.createServer(app);
-app.use(cors({ origin: "https://localhost:5173" }));
+app.use(cors({ origin: "https://client-8guormrqc-philip0980s-projects.vercel.app/" }));
 
 dotenv.config();
 
 const io = new Server(server, {
   cors: {
-    origin: "https://localhost:5173",
+    origin: "https://client-8guormrqc-philip0980s-projects.vercel.app/",
     methods: ["POST", "GET"],
   },
 });
