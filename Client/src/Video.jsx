@@ -45,7 +45,7 @@ const Video = () => {
   }, []);
 
   useEffect(() => {
-    socketRef.current = io("https://watch-together-nski.vercel.app");
+    socketRef.current = io("https://watchtogether-jpek.onrender.com/");
 
     socketRef.current.on("connect", () => {
       console.log(
