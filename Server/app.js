@@ -6,13 +6,13 @@ import dotenv from "dotenv";
 
 const app = express();
 const server = http.createServer(app);
-app.use(cors({ origin: "https://watch-together-nski.vercel.app" }));
+app.use(cors({ origin: "https://watch-together-pi.vercel.app" }));
 
 dotenv.config();
 
 const io = new Server(server, {
   cors: {
-    origin: "https://watch-together-nski.vercel.app/",
+    origin: "https://watch-together-pi.vercel.app/",
     methods: ["POST", "GET"],
   },
 });
